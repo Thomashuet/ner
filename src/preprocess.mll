@@ -7,7 +7,6 @@ let decode =
     ~in_enc:Netconversion.(`Enc_utf8)
     ~out_enc:Netconversion.(`Enc_utf8)
     ()
-% Netencoding.Url.decode ~plus:false
 
 open CamomileLibraryDefault.Camomile
 module CM = CaseMap.Make(UTF8)
@@ -22,14 +21,23 @@ let underscores =
   Str.global_replace (Str.regexp "^_\\|_$") ""
 % Str.global_replace (Str.regexp "[_ ]+") "_"
 
+(* https://en.wikipedia.org/wiki/Help:Link#Conversion_to_canonical_form *)
 let canonicalize = capitalize % underscores % decode
 
+(* Change "François {{1er}}" to "François 1er" *)
 let clean = Str.global_replace (Str.regexp "{{\\(.*|\\)*\\([^|]*\\)}}") "\\2"
 
 open Lexing
 
 module M = Map.Make(String)
 module S = Set.Make(String)
+
+(*
+* Types of the computed dictionaries:
+* redirect : string M.t
+* name : int M.t M.t
+* link : string S.t M.t
+*)
 
 let find default k m =
   if M.mem k m then M.find k m
@@ -131,7 +139,8 @@ let run input name_out link_out =
   M.iter
     (fun text m ->
       M.iter
-        (fun entity count -> output_string oc (text^"\t"^follow redirect entity^"\n"))
+        (fun entity count ->
+          output_string oc (text^"\t"^follow redirect entity^"\t"^string_of_int count^"\n"))
         m)
     name;
   close ();
@@ -139,9 +148,14 @@ let run input name_out link_out =
     if link_out = "-" then stdout, ignore else
     let oc = open_out link_out in oc, fun () -> close_out oc
   in
-  (* TODO *)
+  M.iter
+    (fun source s ->
+      S.iter (fun target -> output_string oc (source^"\t"^follow redirect target^"\n")) s)
+    link;
   close ()
 
-let () = run Sys.argv.(1) Sys.argv.(2) Sys.argv.(3)
+let () =
+  if Array.length Sys.argv = 4 then run Sys.argv.(1) Sys.argv.(2) Sys.argv.(3)
+  else print_endline "usage: preprocess pages-articles.xml names.out links.out"
 
 }
