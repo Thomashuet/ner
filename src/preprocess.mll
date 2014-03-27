@@ -40,8 +40,7 @@ module S = Set.Make(String)
 *)
 
 let find default k m =
-  if M.mem k m then M.find k m
-  else default
+  try M.find k m with Not_found -> default
 
 let extend k v m =
   M.add k (S.add v (find S.empty k m)) m
