@@ -11,11 +11,14 @@ let decode =
 open CamomileLibraryDefault.Camomile
 module CM = CaseMap.Make(UTF8)
 
+(*
 let capitalize (s : string) : string =
   if s = "" then "" else
   let first = UTF8.get s 0 in
   let capital = CM.uppercase (UTF8.init 1 (fun _ -> first)) in
   UTF8.init (UTF8.length s) (function 0 -> UTF8.get capital 0 | i -> UTF8.get s i)
+*)
+let capitalize = CM.capitalize
 
 let underscores =
   Str.global_replace (Str.regexp "^_\\|_$") ""
@@ -39,15 +42,11 @@ module S = Set.Make(String)
 * link : string S.t M.t
 *)
 
-let find default k m =
-  try M.find k m with Not_found -> default
-
 let extend k v m =
-  M.add k (S.add v (find S.empty k m)) m
+  M.modify_def S.empty k (S.add v) m
 
 let increment k v m =
-  let n = find M.empty k m in
-  M.add k (M.add v (1 + find 0 v n) n) m
+  M.modify_def M.empty k (M.modify_def 0 v ((+) 1)) m
 
 }
 
@@ -135,13 +134,19 @@ let run input name_out link_out =
     if name_out = "-" then stdout, ignore else
     let oc = open_out name_out in oc, fun () -> close_out oc
   in
+  let proba m =
+    let tot = float (M.fold (fun _ -> (+)) m 0) in
+    M.add "<Other>" (float (M.cardinal m) /. tot)
+      (M.filterv ((<) 0.)
+        (M.map (fun a -> float (a - 1) /. tot) m))
+  in
   M.iter
     (fun text m ->
       M.iter
         (fun entity count ->
-          output_string oc (text^"\t"^follow redirect entity^"\t"^string_of_int count^"\n"))
+          output_string oc (text^"\t"^follow redirect entity^"\t"^string_of_float count^"\n"))
         m)
-    name;
+    (M.filterv (fun v -> M.cardinal v > 1) (M.map proba name));
   close ();
   let oc, close =
     if link_out = "-" then stdout, ignore else

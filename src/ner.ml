@@ -8,12 +8,10 @@ let split =
 
 module S = Set.Make(String)
 module M = Map.Make(String)
-
-let find default k m =
-  try M.find k m with Not_found -> default
+module T = Trie.Make(M)
 
 let extend k v m =
-  M.add k (S.add v (find S.empty k m)) m
+  M.modify_def S.empty k (S.add v) m
 
 let tab = Str.regexp_string "\t"
 
@@ -26,22 +24,41 @@ let rec build_graph ic g =
     | [source; target] -> build_graph ic (extend source target g)
     | _ -> build_graph ic g
 
-let rec build_dic ic dic =
+let rec build_trie ic trie =
   let loption = try Some (input_line ic) with End_of_file -> None in
   match loption with
-  | None -> dic
+  | None -> trie
   | Some l ->
     match Str.split tab l with
     | [name; entity; count] ->
-      build_dic ic (M.add name (M.add entity count (find M.empty name dic)) dic)
-    | _ -> build_dic ic dic
+      build_trie ic
+        (T.modify_def M.empty (split name) (M.add entity (float_of_string count)) trie)
+    | _ -> build_trie ic trie
+
+let ner trie graph text =
+  let length = List.fold_left (+) 0 % List.map String.length in
+  let rec get_candidates pos = function
+  | [] -> []
+  | h :: t as l -> try
+    let matched, entities, tail = T.find_longest l trie in
+    let size = length matched in
+    (List.map
+      (fun (entity, weight) -> pos, pos + size, entity, weight)
+      (M.bindings entities)) :: get_candidates (pos + size) tail
+  with Not_found -> get_candidates (pos + String.length h) t
+  in
+  let disambiguate acc candidates =
+    let conflicts (a, b, _, _) (c, d, _, _) = b > c && d > a in
+    [(* TODO *)]
+  in
+  disambiguate [] (get_candidates 0 (split text))
 
 let run names links =
   let ic, close =
     if names = "-" then stdin, ignore else
     let ic = open_in names in ic, fun () -> close_in ic
   in
-  let dic = build_dic ic M.empty in
+  let trie = build_trie ic T.empty in
   close ();
   let ic, close =
     if links = "-" then stdin, ignore else
@@ -49,6 +66,7 @@ let run names links =
   in
   let graph = build_graph ic M.empty in
   close ();
+  let extract = ner trie graph in
   ()
 
 let () =

@@ -39,13 +39,21 @@ module Make (M : Map.S) = struct
   | h :: t, Node(o, m) ->
     Node(o, M.modify_def empty h (add t v) m)
 
-  let cons h (a, t) = a, (h :: t)
+  let cons h (t, a, b) = h :: t, a, b
 
   let rec find_longest l t = match l, t with
-  | [], Node(Some v, _) -> v, []
+  | [], Node(Some v, _) -> [], v, []
   | [], Node(None, _) -> raise Not_found
-  | h :: t, Node(Some v, m) -> (try cons h (find_longest t (M.find h m)) with Not_found -> v, [])
+  | h :: t, Node(Some v, m) -> (try cons h (find_longest t (M.find h m)) with Not_found -> [], v, t)
   | h :: t, Node(None, m) -> cons h (find_longest t (M.find h m))
+
+  let rec find_all l t = match l, t with
+  | [], Node(Some v, _) -> [[], v, []]
+  | [], Node(None, _) -> []
+  | h :: t, Node(Some v, m) ->
+    (try List.map (cons h) (find_all t (M.find h m)) with Not_found -> [[], v, t])
+  | h :: t, Node(None, m) ->
+    (try List.map (cons h) (find_all t (M.find h m)) with Not_found -> [])
 
   let rec modify_def def l f t = match l, t with
   | [], Node(None, m) -> Node(Some (f def), m)

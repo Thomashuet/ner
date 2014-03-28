@@ -1,4 +1,5 @@
 workspace
 _build
+*.byte
 *.native
 *.swp
