@@ -8,27 +8,42 @@ let decode =
     ~out_enc:Netconversion.(`Enc_utf8)
     ()
 
+let strip =
+  let tag = Str.regexp "<[^>]*>" in
+  Str.global_replace tag "";;
+
+(* Change "  François {{1er}}" to "François 1er" *)
+let clean =
+  let nbsp = Str.regexp "\194\160" in
+  let ends = Str.regexp "^[ \t\n\r]*\\|[ \t\n\r]*$" in
+  let block = Str.regexp "{{\\(.*|\\)*\\([^|]*\\)}}" in
+  Str.global_replace ends ""
+% Str.global_replace nbsp " "
+% Str.global_replace block "\\2"
+% decode
+% strip
+% decode
+
 open CamomileLibraryDefault.Camomile
 module CM = CaseMap.Make(UTF8)
 
-(*
 let capitalize (s : string) : string =
   if s = "" then "" else
   let first = UTF8.get s 0 in
   let capital = CM.uppercase (UTF8.init 1 (fun _ -> first)) in
   UTF8.init (UTF8.length s) (function 0 -> UTF8.get capital 0 | i -> UTF8.get s i)
-*)
+(*
 let capitalize = CM.capitalize
+*)
 
 let underscores =
-  Str.global_replace (Str.regexp "^_\\|_$") ""
-% Str.global_replace (Str.regexp "[_ ]+") "_"
+  let ends = Str.regexp "^_\\|_$" in
+  let spaces = Str.regexp "[_ ]+" in
+  Str.global_replace ends ""
+% Str.global_replace spaces "_"
 
 (* https://en.wikipedia.org/wiki/Help:Link#Conversion_to_canonical_form *)
-let canonicalize = capitalize % underscores % decode
-
-(* Change "François {{1er}}" to "François 1er" *)
-let clean = Str.global_replace (Str.regexp "{{\\(.*|\\)*\\([^|]*\\)}}") "\\2"
+let canonicalize = capitalize % underscores % clean
 
 open Lexing
 
