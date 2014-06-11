@@ -1,11 +1,8 @@
-OCB=ocamlbuild -use-ocamlfind -pkgs netstring,camomile,batteries
+OCB=ocamlbuild -use-ocamlfind
 
-all: preprocess.native ner.native
+all: preprocess.native similarity.native ner.native
 
 %.native: $(wildcard *.mll *.ml)
-	$(OCB) $@
-
-%.byte: $(wildcard *.mll *.ml)
 	$(OCB) $@
 
 clean:
