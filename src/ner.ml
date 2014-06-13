@@ -104,21 +104,24 @@ let ner trie avg means graph text =
   let sort = List.sort (fun (_, _, _, a) (_, _, _, b) -> compare a b) in
   (* 2 candidates conflicts if they correspond to the same piece of text *)
   let conflicts (a, b, _, _) (c, d, _, _) = b > c && d > a in
-  let (++) (c, p) r = c +. p *. r, p in
-  let (--) (c, p) r = c -. p *. r, p in
-  (* remove x and update confidence *)
-  let rec remove (_, _, ex, _ as x) = function
-  | [] -> []
-  | h :: t when h = x -> remove x t
-  | (l, r, e, w) :: t ->
-    (l, r, e, w -- rel e ex) :: remove x t
+  let update (+.) (l1, r1, e1, (c1, p1) as x) (l2, r2, e2, (c2, p2) as y) =
+    let r = if conflicts x y then 0. else rel e1 e2 in
+    (l1, r1, e1, (c1 +. p1 *. r, p1))
   in
-  let rec product (l1, r1, e1, w1) = function
-  | [] -> (l1, r1, e1, w1), []
-  | (l2, r2, e2, w2) :: t ->
-    let r = rel e1 e2 in
-    let h, t = product (l1, r1, e1, w1 ++ r) t in
-    h, (l2, r2, e2, w2 ++ r) :: t
+  let (++) = update (+.) in
+  let (--) = update (-.) in
+  (* remove x and update confidence *)
+  let rec remove x = function
+  | [] -> []
+  | h :: t ->
+    if h = x then remove x t
+    else h -- x :: remove x t
+  in
+  let rec product x = function
+  | [] -> x, []
+  | h :: t ->
+    let h, t = product (x ++ h) t in
+    h, (h ++ x) :: t
   in
   let rec consistency = function
   | [] -> []

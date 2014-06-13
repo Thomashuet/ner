@@ -28,4 +28,5 @@ All candidate entities are extracted (longest match of text) and sorted by confi
 Entities are selected greedily starting with the worst candidate.
 If the worst candidate is the only remaining candidate for a piece of text, then it is selected, otherwise it is pruned and confidence of all other candidates is updated.
 
-Confidence is $$conf(c_i)=prior(c_i)\sum_{j\not=i}{rel(c_i,c_j)}$$ where $prior(c_i)=conf(t_i\mapsto c_i)$ with $t_i$ the piece of text corresponding to $c_i$.
+Confidence that text $t_i$ refers to candidate $c_i$ is
+$$conf(c_i, t_i)=conf(t_i\mapsto c_i)\sum_{t_j\cap t_i = \emptyset}{rel(c_i,c_j)}$$
