@@ -90,6 +90,7 @@ let ner trie avg means graph text =
         (Hashtbl.add h (x, y) ans; ans)
   in
   let length = List.fold_left (+) 0 % List.map UTF8.length in
+  (* get candidates entity : (start_pos, end_pos, entity, (0., prior)) *)
   let rec get_candidates pos = function
   | [] -> []
   | h :: t as l -> try
@@ -101,9 +102,11 @@ let ner trie avg means graph text =
   with Not_found -> get_candidates (pos + UTF8.length h) t
   in
   let sort = List.sort (fun (_, _, _, a) (_, _, _, b) -> compare a b) in
+  (* 2 candidates conflicts if they correspond to the same piece of text *)
   let conflicts (a, b, _, _) (c, d, _, _) = b > c && d > a in
   let (++) (c, p) r = c +. p *. r, p in
   let (--) (c, p) r = c -. p *. r, p in
+  (* remove x and update confidence *)
   let rec remove (_, _, ex, _ as x) = function
   | [] -> []
   | h :: t when h = x -> remove x t
@@ -123,6 +126,10 @@ let ner trie avg means graph text =
     let h, t = product h t in
     h :: consistency t
   in
+  (*
+    if worst candidate conflicts with others, remove it and update confidence
+    otherwise take it
+  *)
   let rec disambiguate = function
   | [] -> []
   | h :: t ->
@@ -131,7 +138,7 @@ let ner trie avg means graph text =
   in
   disambiguate % sort % consistency % get_candidates 0 % split @@ text
 
-let run port names links similarity =
+let run port names links relatedness =
   (* build trie from file `names` *)
   let ic, close =
     if names = "-" then stdin, ignore else
@@ -146,10 +153,10 @@ let run port names links similarity =
   in
   let graph = build_graph ic M.empty in
   close ();
-  (* build average distance to x from file `similarity` *)
+  (* build average distance to x from file `relatedness` *)
   let ic, close =
-    if similarity = "-" then stdin, ignore else
-    let ic = open_in similarity in ic, fun () -> close_in ic
+    if relatedness = "-" then stdin, ignore else
+    let ic = open_in relatedness in ic, fun () -> close_in ic
   in
   let means = build_means ic M.empty in
   close ();
@@ -177,4 +184,4 @@ let run port names links similarity =
 let () =
   if Array.length Sys.argv = 5 then
     run (int_of_string Sys.argv.(4)) Sys.argv.(1) Sys.argv.(2) Sys.argv.(3)
-  else print_endline "usage: ner names links similarity port"
+  else print_endline "usage: ner names links relatedness port"

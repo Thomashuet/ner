@@ -1,6 +1,6 @@
 OCB=ocamlbuild -use-ocamlfind
 
-all: preprocess.native similarity.native ner.native
+all: preprocess.native relatedness.native ner.native
 
 %.native: $(wildcard *.mll *.ml)
 	$(OCB) $@

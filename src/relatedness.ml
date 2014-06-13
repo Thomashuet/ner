@@ -104,4 +104,4 @@ let run links out =
 
 let () =
   if Array.length Sys.argv = 3 then run Sys.argv.(1) Sys.argv.(2)
-  else print_endline "usage: similarity links out"
+  else print_endline "usage: relatedness links out"
