@@ -136,10 +136,15 @@ let ner trie avg means graph text =
   let rec disambiguate = function
   | [] -> []
   | h :: t ->
-    if List.exists (conflicts h) t then disambiguate % sort % remove h @@ t
+    if List.exists (conflicts h) t then t |> remove h |> sort |> disambiguate
     else h :: disambiguate t
   in
-  disambiguate % sort % consistency % get_candidates 0 % split @@ text
+  text
+  |> split
+  |> get_candidates 0
+  |> consistency
+  |> sort
+  |> disambiguate
 
 let run port names links relatedness =
   (* build trie from file `names` *)
@@ -170,21 +175,30 @@ let run port names links relatedness =
   let means = M.map (fun (x, y) -> x, y /. n) means in
   let extract = ner trie avg means graph in
   let json l =
+    let buf = Buffer.create 42 in
     let rec json = function
-    | [] -> ""
-    | (start_pos, end_pos, entity, _) :: t when entity <> "<Other>" ->
-      "{\"start\":" ^ string_of_int start_pos ^
-      ",\"end\":" ^ string_of_int end_pos ^
-      ",\"entity\":\"" ^ entity ^
-      "\"}," ^ json t
+    | [] -> ()
+    | (start_pos, end_pos, entity, _) :: t when not (is_other entity) -> begin
+      Buffer.add_string buf "{\"start\":";
+      Buffer.add_string buf (string_of_int start_pos);
+      Buffer.add_string buf ",\"end\":";
+      Buffer.add_string buf (string_of_int end_pos);
+      Buffer.add_string buf ",\"entity\":\"";
+      Buffer.add_string buf entity;
+      Buffer.add_string buf "\"},";
+      json t
+    end
     | _ :: t -> json t
     in
-    "["^ json l ^"]\n"
+    Buffer.add_char buf '[';
+    json l;
+    Buffer.add_string buf "]\n";
+    Buffer.contents buf
   in
-  print_endline "ready";
+  Printf.printf "ready\n%!";
   Server.run (json % extract) port
 
 let () =
   if Array.length Sys.argv = 5 then
     run (int_of_string Sys.argv.(4)) Sys.argv.(1) Sys.argv.(2) Sys.argv.(3)
-  else print_endline "usage: ner names links relatedness port"
+  else Printf.printf "usage: ner names links relatedness port"
