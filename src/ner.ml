@@ -120,8 +120,8 @@ let ner trie avg means graph text =
   let rec product x = function
   | [] -> x, []
   | h :: t ->
-    let h, t = product (x ++ h) t in
-    h, (h ++ x) :: t
+    let i, t = product (x ++ h) t in
+    i, (h ++ x) :: t
   in
   let rec consistency = function
   | [] -> []
