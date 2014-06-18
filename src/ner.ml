@@ -79,6 +79,7 @@ let relatedness avg m g x y =
     max (fst (find x) +. fst (find y)) 1.
 
 let ner trie avg means graph text =
+  Printf.printf "%s…\n%!" (String.sub text 0 (min 42 (String.length text)));
   (* memoise relatedness *)
   let rec rel =
     let h = Hashtbl.create 42 in
