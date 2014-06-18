@@ -178,7 +178,7 @@ let run port names links relatedness =
     let buf = Buffer.create 42 in
     let rec json = function
     | [] -> ()
-    | (start_pos, end_pos, entity, _) :: t when not (is_other entity) -> begin
+    | (start_pos, end_pos, entity, (score, _)) :: t -> begin
       Buffer.add_string buf "{\"start\":";
       Buffer.add_string buf (string_of_int start_pos);
       Buffer.add_string buf ",\"end\":";
@@ -186,12 +186,12 @@ let run port names links relatedness =
       Buffer.add_string buf ",\"entity\":\"";
       Buffer.add_string buf entity;
       Buffer.add_string buf "\"},";
+      if t <> [] then Buffer.add_char buf ',';
       json t
     end
-    | _ :: t -> json t
     in
     Buffer.add_char buf '[';
-    json l;
+    json (List.filter (fun (_, _, e, _) -> not (is_other e)) l);
     Buffer.add_string buf "]\n";
     Buffer.contents buf
   in
