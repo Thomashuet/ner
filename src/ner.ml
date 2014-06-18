@@ -175,6 +175,7 @@ let run port names links relatedness =
   let means = M.map (fun (x, y) -> x, y /. n) means in
   let extract = ner trie avg means graph in
   let json l =
+    let n = float (List.length l) in
     let buf = Buffer.create 42 in
     let rec json = function
     | [] -> ()
@@ -185,7 +186,9 @@ let run port names links relatedness =
       Buffer.add_string buf (string_of_int end_pos);
       Buffer.add_string buf ",\"entity\":\"";
       Buffer.add_string buf entity;
-      Buffer.add_string buf "\"},";
+      Buffer.add_string buf "\",\"score\":";
+      Buffer.add_string buf (string_of_float (score /. n));
+      Buffer.add_char buf '}';
       if t <> [] then Buffer.add_char buf ',';
       json t
     end
