@@ -176,27 +176,28 @@ let run port names links relatedness =
   let means = M.map (fun (x, y) -> x, y /. n) means in
   let extract = ner trie avg means graph in
   let json l =
+    let open Printf in
     let n = float (List.length l) in
     let buf = Buffer.create 42 in
     let rec json = function
     | [] -> ()
     | (start_pos, end_pos, entity, (score, _)) :: t -> begin
-      Buffer.add_string buf "{\"start\":";
-      Buffer.add_string buf (string_of_int start_pos);
-      Buffer.add_string buf ",\"end\":";
-      Buffer.add_string buf (string_of_int end_pos);
-      Buffer.add_string buf ",\"entity\":\"";
-      Buffer.add_string buf entity;
-      Buffer.add_string buf "\",\"score\":";
-      Buffer.add_string buf (string_of_float (score /. n));
-      Buffer.add_char buf '}';
-      if t <> [] then Buffer.add_char buf ',';
+      bprintf buf "{\"start\":";
+      bprintf buf "%d" start_pos;
+      bprintf buf ",\"end\":";
+      bprintf buf "%d" end_pos;
+      bprintf buf ",\"entity\":\"";
+      bprintf buf "%s" entity;
+      bprintf buf "\",\"score\":";
+      bprintf buf "%.12f" (score /. n);
+      bprintf buf "}";
+      if t <> [] then bprintf buf ",";
       json t
     end
     in
-    Buffer.add_char buf '[';
+    bprintf buf "[";
     json (List.filter (fun (_, _, e, _) -> not (is_other e)) l);
-    Buffer.add_string buf "]\n";
+    bprintf buf "]\n%!";
     Buffer.contents buf
   in
   Printf.printf "ready\n%!";
