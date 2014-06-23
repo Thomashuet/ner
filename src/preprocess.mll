@@ -165,6 +165,12 @@ let run input name_out link_out =
       lexbuf
   in
   close_in ic;
+  (* merge redirected *)
+  let merge k v =
+    let k = follow redirect k in
+    M.modify_def v k ((+) v)
+  in
+  let name = M.map (fun m -> M.fold merge m M.empty) name in
   let oc, close =
     if name_out = "-" then stdout, ignore else
     let oc = open_out name_out in oc, fun () -> close_out oc
@@ -183,7 +189,7 @@ let run input name_out link_out =
       M.iter
         (fun entity count ->
           output_string oc
-            (text^"\t"^follow redirect entity^"\t"^string_of_float count^"\n"))
+            (text^"\t"^entity^"\t"^string_of_float count^"\n"))
         m)
     (M.filterv (fun v -> M.cardinal v > 1) (M.mapi proba name));
   close ();
