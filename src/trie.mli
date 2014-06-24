@@ -13,4 +13,5 @@ module Make :
       val find_longest : M.key list -> 'a t -> M.key list * 'a * M.key list
       val find_all : M.key list -> 'a t -> (M.key list * 'a * M.key list) list
       val modify_def : 'a -> M.key list -> ('a -> 'a) -> 'a t -> 'a t
+      val map : ('a -> 'b) -> 'a t -> 'b t
     end

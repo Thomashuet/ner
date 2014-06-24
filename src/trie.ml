@@ -30,7 +30,7 @@ module Make (M : Map.S) = struct
     | None -> raise Not_found
     | Some d -> d
 
-  let rec mem l t =
+  let mem l t =
     try find_ l t; true
     with Not_found -> false
 
@@ -44,7 +44,8 @@ module Make (M : Map.S) = struct
   let rec find_longest l t = match l, t with
   | [], Node(Some v, _) -> [], v, []
   | [], Node(None, _) -> raise Not_found
-  | h :: t, Node(Some v, m) -> (try cons h (find_longest t (M.find h m)) with Not_found -> [], v, t)
+  | h :: t, Node(Some v, m) ->
+    (try cons h (find_longest t (M.find h m)) with Not_found -> [], v, h :: t)
   | h :: t, Node(None, m) -> cons h (find_longest t (M.find h m))
 
   let rec find_all l t = match l, t with
@@ -60,5 +61,9 @@ module Make (M : Map.S) = struct
   | [], Node(Some v, m) -> Node(Some (f v), m)
   | h :: t, Node(o, m) ->
     Node(o, M.modify_def empty h (modify_def def t f) m)
+
+  let rec map f = function
+  | Node(None, m) -> Node(None, M.map (map f) m)
+  | Node(Some v, m) -> Node(Some (f v), M.map (map f) m)
 
 end
