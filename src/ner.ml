@@ -5,6 +5,14 @@ module CM = CaseMap.Make(UTF8)
 
 let word = Str.regexp "[a-zA-Z\128-\255]*"
 
+let escape =
+  let backslash = Str.regexp_string "\\" in
+  let quote = Str.regexp_string "\"" in
+  let newline = Str.regexp_string "\n" in
+  Str.global_replace backslash "\\\\"
+% Str.global_replace quote "\\\""
+% Str.global_replace newline "\\n"
+
 let split =
   let get = function Str.Text s | Str.Delim s -> s in
   List.map get % Str.full_split word
@@ -175,7 +183,7 @@ let run port names links relatedness =
   let avg = tot /. n /. n in
   let means = M.map (fun (x, y) -> x, y /. n) means in
   let extract = ner trie avg means graph in
-  let json l =
+  let json text l =
     let open Printf in
     let n = float (List.length l) in
     let buf = Buffer.create 42 in
@@ -188,6 +196,9 @@ let run port names links relatedness =
       bprintf buf "%d" end_pos;
       bprintf buf ",\"entity\":\"";
       bprintf buf "%s" entity;
+      bprintf buf "\",\"surface\":\"";
+      bprintf buf "%s"
+        (escape (Batteries.UTF8.sub text start_pos (end_pos - start_pos)));
       bprintf buf "\",\"score\":";
       bprintf buf "%.12f" (score /. n);
       bprintf buf "}";
@@ -201,7 +212,7 @@ let run port names links relatedness =
     Buffer.contents buf
   in
   Printf.printf "ready\n%!";
-  Server.run (json % extract) port
+  Server.run (fun text -> json text (extract text)) port
 
 let () =
   if Array.length Sys.argv = 5 then
