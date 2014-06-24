@@ -164,6 +164,15 @@ let run port names links relatedness =
   in
   let trie = build_trie ic T.empty in
   close ();
+  (* clean trie *)
+  let truncate compare n m =
+  m
+  |> M.bindings
+  |> List.sort (compare)
+  |> List.take n
+  |> List.fold_left (fun m (k, v) -> M.add k v m) M.empty
+  in
+  let trie = T.map (truncate (fun (_,a) (_,b) -> compare b a) 12) trie in
   (* build graph from file `links` *)
   let ic, close =
     if links = "-" then stdin, ignore else
