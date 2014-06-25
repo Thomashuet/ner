@@ -205,7 +205,7 @@ let run port names links relatedness =
       bprintf buf ",\"end\":";
       bprintf buf "%d" end_pos;
       bprintf buf ",\"entity\":\"";
-      bprintf buf "%s" entity;
+      bprintf buf "%s" (escape entity);
       bprintf buf "\",\"surface\":\"";
       bprintf buf "%s"
         (escape (Batteries.UTF8.sub text start_pos (end_pos - start_pos)));
