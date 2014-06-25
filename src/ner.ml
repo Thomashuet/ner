@@ -35,7 +35,9 @@ let rec build_graph ic g =
     | [source; target] -> build_graph ic (extend source target g)
     | _ -> build_graph ic g
 
-let valid name = UTF8.length name > 1 && name <> CM.lowercase name
+let valid name =
+  UTF8.length name > 4
+  && name <> CM.lowercase name
 
 let rec build_trie ic trie =
   let loption = try Some (input_line ic) with End_of_file -> None in
@@ -107,7 +109,7 @@ let ner trie avg means graph text =
     let size = length matched in
     (List.map
       (fun (entity, weight) -> pos, pos + size, entity, (0., weight))
-      (M.bindings entities)) @ get_candidates (pos + size) tail
+      (M.bindings entities)) @ get_candidates (pos + UTF8.length h) t
   with Not_found -> get_candidates (pos + UTF8.length h) t
   in
   let sort = List.sort (fun (_, _, _, a) (_, _, _, b) -> compare a b) in
