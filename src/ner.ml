@@ -157,6 +157,8 @@ let ner trie avg means graph text =
   |> consistency
   |> sort
   |> disambiguate
+  |> List.map (fun (a, b, c, (d, e)) -> (a, b, c, (0., e)))
+  |> consistency
 
 let run port names links relatedness =
   (* build trie from file `names` *)
